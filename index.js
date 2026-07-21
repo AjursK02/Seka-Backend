@@ -15,6 +15,7 @@ const port = process.env.PORT || 5000;
 const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
+  .map((origin) => origin.replace(/\/+$/, ""))
   .filter(Boolean);
 
 app.use(helmet());
@@ -25,7 +26,9 @@ app.use(
         return callback(null, true);
       }
 
-      if (allowedOrigins.includes(origin)) {
+      const normalizedOrigin = origin.replace(/\/+$/, "");
+
+      if (allowedOrigins.includes(normalizedOrigin)) {
         return callback(null, true);
       }
 
@@ -35,6 +38,18 @@ app.use(
 );
 app.use(express.json({ limit: "10kb" }));
 app.use(morgan("dev"));
+
+app.use(async (_req, _res, next) => {
+  if (process.env.VERCEL) {
+    try {
+      await connectDB();
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  return next();
+});
 
 app.use(
   rateLimit({
