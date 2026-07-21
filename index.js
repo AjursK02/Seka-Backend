@@ -12,10 +12,21 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
-const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const defaultOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://seka-frontend-black.vercel.app",
+];
+
+const allowedOrigins = new Set(
+  [
+    ...defaultOrigins,
+    ...(process.env.CLIENT_ORIGIN || "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  ]
+);
 
 app.use(helmet());
 app.use(
@@ -25,7 +36,7 @@ app.use(
         return callback(null, true);
       }
 
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.has(origin)) {
         return callback(null, true);
       }
 
@@ -44,6 +55,13 @@ app.use(
     legacyHeaders: false,
   })
 );
+
+app.get("/", (_req, res) => {
+  res.json({
+    success: true,
+    message: "SEKA backend is running",
+  });
+});
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true });
@@ -81,6 +99,7 @@ const startServer = async () => {
 };
 
 if (process.env.VERCEL) {
+  // Vercel loads the Express app directly instead of starting a long-lived listener.
   module.exports = app;
 } else {
   startServer();
