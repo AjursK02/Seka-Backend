@@ -1,4 +1,5 @@
 const express = require("express");
+const connectDB = require("../config/db");
 const WaitlistEntry = require("../models/WaitlistEntry");
 
 const router = express.Router();
@@ -8,6 +9,8 @@ const isValidEmail = (email) =>
 
 router.post("/", async (req, res, next) => {
   try {
+    await connectDB();
+
     const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
 
     if (!email) {

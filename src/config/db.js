@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
 
+let cachedConnection = null;
+let cachedPromise = null;
+
 const connectDB = async () => {
   const mongoUri = process.env.MONGODB_URI;
 
@@ -7,8 +10,17 @@ const connectDB = async () => {
     throw new Error("MONGODB_URI is required");
   }
 
-  await mongoose.connect(mongoUri);
-  console.log("MongoDB connected");
+  if (cachedConnection) {
+    return cachedConnection;
+  }
+
+  if (!cachedPromise) {
+    cachedPromise = mongoose.connect(mongoUri).then((connection) => connection);
+  }
+
+  cachedConnection = await cachedPromise;
+
+  return cachedConnection;
 };
 
 module.exports = connectDB;
