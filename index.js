@@ -12,12 +12,25 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
-const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.use(helmet());
 app.use(
   cors({
-    origin: clientOrigin,
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
   })
 );
 app.use(express.json({ limit: "10kb" }));
@@ -59,7 +72,7 @@ const startServer = async () => {
     await connectDB();
 
     app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
+      console.log("Backend server is running");
     });
   } catch (error) {
     console.error("Failed to start server:", error.message);
@@ -67,4 +80,8 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+  startServer();
+}
